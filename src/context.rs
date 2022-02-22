@@ -1,7 +1,7 @@
 use crate::endianness::Endianness;
 
 pub trait Context {
-    type Error: From< crate::Error > + crate::IsEof;
+    type Error: From< crate::Error > + crate::IsEof + std::fmt::Debug;
     fn endianness( &self ) -> Endianness;
 }
 

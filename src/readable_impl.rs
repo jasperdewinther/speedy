@@ -5,6 +5,8 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::hash::{BuildHasher, Hash};
 use std::num::NonZeroU32;
 
+use arrayvec::ArrayVec;
+
 use crate::readable::Readable;
 use crate::reader::Reader;
 
@@ -448,58 +450,19 @@ impl< 'a, C > Readable< 'a, C > for std::time::SystemTime where C: Context {
     }
 }
 
-macro_rules! repeat {
-    (1, $expr:expr) => { [$expr] };
-    (2, $expr:expr) => { [$expr, $expr] };
-    (3, $expr:expr) => { [$expr, $expr, $expr] };
-    (4, $expr:expr) => { [$expr, $expr, $expr, $expr] };
-    (5, $expr:expr) => { [$expr, $expr, $expr, $expr, $expr] };
-    (6, $expr:expr) => { [$expr, $expr, $expr, $expr, $expr, $expr] };
-    (7, $expr:expr) => { [$expr, $expr, $expr, $expr, $expr, $expr, $expr] };
-    (8, $expr:expr) => { [$expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr] };
-    (9, $expr:expr) => { [$expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr] };
-    (10, $expr:expr) => { [$expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr] };
-    (11, $expr:expr) => { [$expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr] };
-    (12, $expr:expr) => { [$expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr] };
-    (13, $expr:expr) => { [$expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr] };
-    (14, $expr:expr) => { [$expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr] };
-    (15, $expr:expr) => { [$expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr] };
-    (16, $expr:expr) => { [$expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr, $expr] };
-}
+impl< 'a, C, T, const N: usize> Readable< 'a, C > for [T; N] where C: Context, T: Readable< 'a, C > + std::fmt::Debug {
+    #[inline(always)]
+    fn read_from< R >( reader: &mut R ) -> Result< Self, C::Error > where R: Reader< 'a, C > {
+        let arr: ArrayVec<T, N> = std::iter::repeat_with(|| reader.read_value().unwrap()).collect();
+        let array =  arr.into_inner().unwrap();
+        Ok( array )
+    }
 
-macro_rules! impl_for_array {
-    ($count:tt) => {
-        impl< 'a, C, T > Readable< 'a, C > for [T; $count] where C: Context, T: Readable< 'a, C > {
-            #[inline(always)]
-            fn read_from< R >( reader: &mut R ) -> Result< Self, C::Error > where R: Reader< 'a, C > {
-                let array = repeat!( $count, reader.read_value()? );
-                Ok( array )
-            }
-
-            #[inline]
-            fn minimum_bytes_needed() -> usize {
-                T::minimum_bytes_needed() * $count
-            }
-        }
+    #[inline]
+    fn minimum_bytes_needed() -> usize {
+        T::minimum_bytes_needed() * N
     }
 }
-
-impl_for_array!( 1 );
-impl_for_array!( 2 );
-impl_for_array!( 3 );
-impl_for_array!( 4 );
-impl_for_array!( 5 );
-impl_for_array!( 6 );
-impl_for_array!( 7 );
-impl_for_array!( 8 );
-impl_for_array!( 9 );
-impl_for_array!( 10 );
-impl_for_array!( 11 );
-impl_for_array!( 12 );
-impl_for_array!( 13 );
-impl_for_array!( 14 );
-impl_for_array!( 15 );
-impl_for_array!( 16 );
 
 impl< 'a, C, T > Readable< 'a, C > for Box< T >
     where C: Context,
