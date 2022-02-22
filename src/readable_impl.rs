@@ -453,7 +453,7 @@ impl< 'a, C > Readable< 'a, C > for std::time::SystemTime where C: Context {
 impl< 'a, C, T, const N: usize> Readable< 'a, C > for [T; N] where C: Context, T: Readable< 'a, C > + std::fmt::Debug {
     #[inline(always)]
     fn read_from< R >( reader: &mut R ) -> Result< Self, C::Error > where R: Reader< 'a, C > {
-        let arr: ArrayVec<T, N> = std::iter::repeat_with(|| reader.read_value().unwrap()).collect();
+        let arr: ArrayVec<T, N> = std::iter::repeat_with(|| reader.read_value().unwrap()).take(N).collect();
         let array =  arr.into_inner().unwrap();
         Ok( array )
     }
